@@ -58,7 +58,7 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect } = React;
-const TABS = ["Dashboard", "Log Mow", "Expenses", "Customers", "History"];
+const TABS = ["Dashboard", "Log Mow", "Expenses", "Customers", "History", "Export"];
 
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 function fmtDate(d) { return new Date(d + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
@@ -187,6 +187,50 @@ function App() {
   const monthMows = mows.filter(m => getMonthKey(m.date) === mo).length;
   const filteredHistory = hFilter === "All" ? mows : mows.filter(m => m.customerId === hFilter);
   const netColor = n => n >= 0 ? "#1D9E75" : "#A32D2D";
+
+  function downloadCSV(filename, rows) {
+    const csv = rows.map(r => r.map(cell => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    a.download = filename;
+    a.click();
+  }
+
+  function exportMows() {
+    const rows = [["Date", "Customer", "Amount", "Paid"]];
+    [...mows].sort((a,b) => b.date.localeCompare(a.date)).forEach(m => {
+      rows.push([fmtDate(m.date), m.customerName, m.amount.toFixed(2), m.paid ? "Yes" : "No"]);
+    });
+    downloadCSV("mows.csv", rows);
+  }
+
+  function exportExpenses() {
+    const rows = [["Date", "Description", "Amount"]];
+    [...expenses].sort((a,b) => b.date.localeCompare(a.date)).forEach(e => {
+      rows.push([fmtDate(e.date), e.description, e.amount.toFixed(2)]);
+    });
+    downloadCSV("expenses.csv", rows);
+  }
+
+  function exportSummary() {
+    const rows = [["Period", "Earned", "Expenses", "Net Profit"]];
+    rows.push(["This Week", weekEarn.toFixed(2), weekExp.toFixed(2), (weekEarn - weekExp).toFixed(2)]);
+    rows.push(["This Month", monthEarn.toFixed(2), monthExp.toFixed(2), (monthEarn - monthExp).toFixed(2)]);
+    rows.push(["This Year", yearEarn.toFixed(2), yearExp.toFixed(2), (yearEarn - yearExp).toFixed(2)]);
+    rows.push(["All Time", allEarn.toFixed(2), allExp.toFixed(2), (allEarn - allExp).toFixed(2)]);
+    downloadCSV("summary.csv", rows);
+  }
+
+  function exportCustomers() {
+    const rows = [["Name", "Phone", "Standard Price", "Total Mows", "Total Earned", "Last Mowed"]];
+    [...customers].sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
+      const custMows = mows.filter(m => m.customerId === c.id);
+      const lastMow = [...custMows].sort((a,b) => b.date.localeCompare(a.date))[0];
+      const totalEarned = custMows.filter(m => m.paid).reduce((s, m) => s + m.amount, 0);
+      rows.push([c.name, c.phone || "", c.price ? c.price.toFixed(2) : "", custMows.length, totalEarned.toFixed(2), lastMow ? fmtDate(lastMow.date) : "Never"]);
+    });
+    downloadCSV("customers.csv", rows);
+  }
 
   if (!ready) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 12 }}>
@@ -379,6 +423,30 @@ function App() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* EXPORT */}
+      {tab === "Export" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <p style={{ fontSize: 13, color: "#888" }}>Download your data as CSV files — great for taxes or keeping a backup.</p>
+
+          {[
+            { label: "📋 Earnings Summary", sub: "Week, month, year & all-time totals", fn: exportSummary, disabled: mows.length === 0 },
+            { label: "🌿 All Mows", sub: `${mows.length} mow${mows.length !== 1 ? "s" : ""} logged`, fn: exportMows, disabled: mows.length === 0 },
+            { label: "💸 All Expenses", sub: `${expenses.length} expense${expenses.length !== 1 ? "s" : ""} logged`, fn: exportExpenses, disabled: expenses.length === 0 },
+            { label: "👤 Customer List", sub: `${customers.length} customer${customers.length !== 1 ? "s" : ""} with stats`, fn: exportCustomers, disabled: customers.length === 0 },
+          ].map(({ label, sub, fn, disabled }) => (
+            <div key={label} className="card" style={{ padding: "1rem 1.25rem", display: "flex", alignItems: "center", gap: 12, opacity: disabled ? 0.5 : 1 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: 15 }}>{label}</div>
+                <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{sub}</div>
+              </div>
+              <button onClick={fn} disabled={disabled} style={{ background: "#1D9E75", color: "#fff", border: "none", borderRadius: 8, padding: "7px 16px", fontWeight: 600, fontSize: 13 }}>
+                Download
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
