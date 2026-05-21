@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lawn Care Tracker</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDpsulrZfn0w0-duaNhPdHfBu9NZYB6IQg",
+    authDomain: "lawn-tracker-ecae7.firebaseapp.com",
+    projectId: "lawn-tracker-ecae7",
+    storageBucket: "lawn-tracker-ecae7.firebasestorage.app",
+    messagingSenderId: "878843625144",
+    appId: "1:878843625144:web:a9cfb59426a710eccdbe4d"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window.__db = db;
+  window.__col = (name) => collection(db, name);
+  window.__onSnapshot = onSnapshot;
+  window.__addDoc = addDoc;
+  window.__updateDoc = updateDoc;
+  window.__deleteDoc = deleteDoc;
+  window.__doc = doc;
+  window.__firebaseReady = true;
+  window.dispatchEvent(new Event("firebaseReady"));
+</script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f3; color: #1a1a18; min-height: 100vh; }
+  input, select, button, textarea {
+    font-family: inherit; font-size: 14px; border-radius: 8px;
+    border: 0.5px solid #ccc; padding: 7px 10px; outline: none; background: #fff; color: #1a1a18;
+  }
+  input:focus, select:focus, textarea:focus { border-color: #888; box-shadow: 0 0 0 2px rgba(0,0,0,0.08); }
+  button { cursor: pointer; background: transparent; border: 0.5px solid #bbb; padding: 6px 14px; border-radius: 8px; }
+  button:hover { background: #f0efea; }
+  button:active { transform: scale(0.98); }
+  input[type="checkbox"] { cursor: pointer; accent-color: #1D9E75; }
+  .card { background: #fff; border: 0.5px solid #ddd; border-radius: 12px; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1c1c1a; color: #f0efe8; }
+    input, select, button, textarea { background: #2a2a28; color: #f0efe8; border-color: #444; }
+    button:hover { background: #333330; }
+    .card { background: #242422 !important; border-color: #383836 !important; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const TABS = ["Dashboard", "Log Mow", "Expenses", "Customers", "History"];
+
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+function fmtDate(d) { return new Date(d + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
+function fmtMoney(n) { return "$" + Number(n || 0).toFixed(2); }
+function getWeekKey(dateStr) {
+  const d = new Date(dateStr + "T00:00:00"), day = d.getDay();
+  const mon = new Date(d); mon.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  return mon.toISOString().slice(0, 10);
+}
+function getMonthKey(d) { return d.slice(0, 7); }
+function getYearKey(d) { return d.slice(0, 4); }
+
+const Pill = ({ label, color, bg }) => (
+  <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: bg, color, fontWeight: 500 }}>{label}</span>
+);
+function StatCard({ label, value, sub, valueColor }) {
+  return (
+    <div className="card" style={{ padding: "1rem 1.25rem", flex: 1, minWidth: 130 }}>
+      <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 20, fontWeight: 600, color: valueColor || "inherit" }}>{value}</div>
+      {sub && <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{sub}</div>}
+    </div>
+  );
+}
+function SectionHeader({ title }) {
+  return <div style={{ fontSize: 11, fontWeight: 600, color: "#888", textTransform: "uppercase", letterSpacing: 1, margin: "1.25rem 0 0.5rem" }}>{title}</div>;
+}
+
+function useCollection(name, ready) {
+  const [items, setItems] = useState([]);
+  useEffect(() => {
+    if (!ready) return;
+    const unsub = window.__onSnapshot(window.__col(name), snap => {
+      setItems(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+    return unsub;
+  }, [name, ready]);
+  return items;
+}
+
+function App() {
+  const [ready, setReady] = useState(!!window.__firebaseReady);
+  useEffect(() => {
+    if (window.__firebaseReady) return;
+    const handler = () => setReady(true);
+    window.addEventListener("firebaseReady", handler);
+    return () => window.removeEventListener("firebaseReady", handler);
+  }, []);
+
+  const customers = useCollection("customers", ready);
+  const mows = useCollection("mows", ready);
+  const expenses = useCollection("expenses", ready);
+
+  const [tab, setTab] = useState("Dashboard");
+  const [cForm, setCForm] = useState({ name: "", phone: "", price: "" });
+  const [cEdit, setCEdit] = useState(null);
+  const [mForm, setMForm] = useState({ customerId: "", date: todayStr(), paid: true, amount: "" });
+  const [eForm, setEForm] = useState({ description: "", amount: "", date: todayStr() });
+  const [hFilter, setHFilter] = useState("All");
+
+  // customers
+  async function saveCustomer() {
+    if (!cForm.name.trim()) return;
+    const data = { name: cForm.name.trim(), phone: cForm.phone.trim(), price: cForm.price ? parseFloat(cForm.price) : null };
+    if (cEdit) {
+      await window.__updateDoc(window.__doc(window.__db, "customers", cEdit), data);
+      setCEdit(null);
+    } else {
+      await window.__addDoc(window.__col("customers"), data);
+    }
+    setCForm({ name: "", phone: "", price: "" });
+  }
+  function startEditC(c) { setCEdit(c.id); setCForm({ name: c.name, phone: c.phone || "", price: c.price ? String(c.price) : "" }); }
+  async function deleteCustomer(id) {
+    if (!window.confirm("Delete this customer and all their mow history?")) return;
+    await window.__deleteDoc(window.__doc(window.__db, "customers", id));
+    const custMows = mows.filter(m => m.customerId === id);
+    await Promise.all(custMows.map(m => window.__deleteDoc(window.__doc(window.__db, "mows", m.id))));
+  }
+
+  // mows
+  async function logMow() {
+    if (!mForm.customerId || !mForm.date || !mForm.amount) return;
+    const cust = customers.find(c => c.id === mForm.customerId);
+    if (!cust) return;
+    await window.__addDoc(window.__col("mows"), {
+      customerId: cust.id, customerName: cust.name,
+      date: mForm.date, paid: mForm.paid, amount: parseFloat(mForm.amount)
+    });
+    setMForm({ customerId: "", date: todayStr(), paid: true, amount: "" });
+  }
+  async function togglePaid(m) {
+    await window.__updateDoc(window.__doc(window.__db, "mows", m.id), { paid: !m.paid });
+  }
+  async function deleteMow(id) {
+    await window.__deleteDoc(window.__doc(window.__db, "mows", id));
+  }
+
+  // expenses
+  async function addExpense() {
+    if (!eForm.description.trim() || !eForm.amount || !eForm.date) return;
+    await window.__addDoc(window.__col("expenses"), {
+      description: eForm.description.trim(), amount: parseFloat(eForm.amount), date: eForm.date
+    });
+    setEForm({ description: "", amount: "", date: todayStr() });
+  }
+  async function deleteExpense(id) {
+    await window.__deleteDoc(window.__doc(window.__db, "expenses", id));
+  }
+
+  // stats
+  const now = todayStr();
+  const wk = getWeekKey(now), mo = getMonthKey(now), yr = getYearKey(now);
+  const paidMows = mows.filter(m => m.paid);
+  const earn = arr => arr.reduce((s, m) => s + (m.amount || 0), 0);
+  const weekEarn = earn(paidMows.filter(m => getWeekKey(m.date) === wk));
+  const monthEarn = earn(paidMows.filter(m => getMonthKey(m.date) === mo));
+  const yearEarn = earn(paidMows.filter(m => getYearKey(m.date) === yr));
+  const allEarn = earn(paidMows);
+  const weekExp = earn(expenses.filter(e => getWeekKey(e.date) === wk));
+  const monthExp = earn(expenses.filter(e => getMonthKey(e.date) === mo));
+  const yearExp = earn(expenses.filter(e => getYearKey(e.date) === yr));
+  const allExp = earn(expenses);
+  const unpaidMows = mows.filter(m => !m.paid);
+  const weekMows = mows.filter(m => getWeekKey(m.date) === wk).length;
+  const monthMows = mows.filter(m => getMonthKey(m.date) === mo).length;
+  const filteredHistory = hFilter === "All" ? mows : mows.filter(m => m.customerId === hFilter);
+  const netColor = n => n >= 0 ? "#1D9E75" : "#A32D2D";
+
+  if (!ready) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 12 }}>
+      <div style={{ fontSize: 32 }}>🌿</div>
+      <div style={{ fontSize: 16, color: "#888" }}>Connecting to database…</div>
+    </div>
+  );
+
+  return (
+    <div style={{ maxWidth: 680, margin: "0 auto", padding: "2rem 1rem" }}>
+      <h1 style={{ fontSize: 24, fontWeight: 600, marginBottom: 4 }}>🌿 Lawn Care Tracker</h1>
+      <p style={{ fontSize: 13, color: "#888", marginBottom: "1.5rem" }}>Track customers, mows, expenses & earnings</p>
+
+      <div style={{ display: "flex", gap: 2, marginBottom: "1.5rem", borderBottom: "0.5px solid #ddd", overflowX: "auto" }}>
+        {TABS.map(t => (
+          <button key={t} onClick={() => setTab(t)} style={{
+            padding: "7px 14px", borderRadius: "8px 8px 0 0", border: "none", fontSize: 13, whiteSpace: "nowrap",
+            fontWeight: tab === t ? 600 : 400,
+            background: tab === t ? "#fff" : "transparent",
+            borderBottom: tab === t ? "2px solid #1D9E75" : "2px solid transparent",
+            color: tab === t ? "#1D9E75" : "#888"
+          }}>{t}</button>
+        ))}
+      </div>
+
+      {/* DASHBOARD */}
+      {tab === "Dashboard" && (
+        <div>
+          <SectionHeader title="This Week" />
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+            <StatCard label="Earned" value={fmtMoney(weekEarn)} sub={`${weekMows} mow${weekMows !== 1 ? "s" : ""}`} />
+            <StatCard label="Expenses" value={fmtMoney(weekExp)} valueColor="#A32D2D" />
+            <StatCard label="Net Profit" value={fmtMoney(weekEarn - weekExp)} valueColor={netColor(weekEarn - weekExp)} />
+          </div>
+          <SectionHeader title="This Month" />
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+            <StatCard label="Earned" value={fmtMoney(monthEarn)} sub={`${monthMows} mow${monthMows !== 1 ? "s" : ""}`} />
+            <StatCard label="Expenses" value={fmtMoney(monthExp)} valueColor="#A32D2D" />
+            <StatCard label="Net Profit" value={fmtMoney(monthEarn - monthExp)} valueColor={netColor(monthEarn - monthExp)} />
+          </div>
+          <SectionHeader title="This Year" />
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+            <StatCard label="Earned" value={fmtMoney(yearEarn)} />
+            <StatCard label="Expenses" value={fmtMoney(yearExp)} valueColor="#A32D2D" />
+            <StatCard label="Net Profit" value={fmtMoney(yearEarn - yearExp)} valueColor={netColor(yearEarn - yearExp)} />
+          </div>
+          <SectionHeader title="All Time" />
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: "1.25rem" }}>
+            <StatCard label="Earned" value={fmtMoney(allEarn)} />
+            <StatCard label="Expenses" value={fmtMoney(allExp)} valueColor="#A32D2D" />
+            <StatCard label="Net Profit" value={fmtMoney(allEarn - allExp)} valueColor={netColor(allEarn - allExp)} />
+          </div>
+          {unpaidMows.length > 0 && (
+            <div style={{ background: "#FAEEDA", border: "0.5px solid #f0c070", borderRadius: 12, padding: "1rem 1.25rem", marginBottom: "1rem" }}>
+              <div style={{ fontWeight: 600, color: "#854F0B", marginBottom: 8 }}>⚠️ Unpaid ({unpaidMows.length}) — {fmtMoney(earn(unpaidMows))} owed</div>
+              {unpaidMows.map(m => (
+                <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 14, padding: "5px 0", borderTop: "0.5px solid #f0c07040" }}>
+                  <span>{m.customerName} <span style={{ color: "#aaa", fontSize: 12 }}>— {fmtDate(m.date)}</span></span>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <span style={{ fontWeight: 600 }}>{fmtMoney(m.amount)}</span>
+                    <button onClick={() => togglePaid(m)} style={{ fontSize: 12, padding: "3px 10px", background: "#1D9E75", color: "#fff", border: "none", borderRadius: 8 }}>Mark Paid</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {unpaidMows.length === 0 && mows.length > 0 && (
+            <div style={{ background: "#EAF3DE", border: "0.5px solid #b2d98a", borderRadius: 12, padding: "0.75rem 1.25rem", color: "#3B6D11", fontSize: 14 }}>
+              ✅ All mows are paid up!
+            </div>
+          )}
+          {mows.length === 0 && expenses.length === 0 && (
+            <p style={{ color: "#888", fontSize: 14, textAlign: "center", padding: "2rem 0" }}>No data yet — add customers and log some mows!</p>
+          )}
+        </div>
+      )}
+
+      {/* LOG MOW */}
+      {tab === "Log Mow" && (
+        <div className="card" style={{ padding: "1.25rem" }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: "1rem" }}>Log a Mow</h2>
+          {customers.length === 0 ? (
+            <p style={{ color: "#888", fontSize: 14 }}>Add customers first in the Customers tab.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 13, color: "#888", display: "block", marginBottom: 4 }}>Customer</label>
+                <select value={mForm.customerId} onChange={e => {
+                  const cust = customers.find(c => c.id === e.target.value);
+                  setMForm(f => ({ ...f, customerId: e.target.value, amount: cust?.price ? String(cust.price) : "" }));
+                }} style={{ width: "100%" }}>
+                  <option value="">— Select customer —</option>
+                  {[...customers].sort((a,b) => a.name.localeCompare(b.name)).map(c => (
+                    <option key={c.id} value={c.id}>{c.name}{c.price ? ` (${fmtMoney(c.price)})` : ""}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 13, color: "#888", display: "block", marginBottom: 4 }}>Amount ($)</label>
+                <input type="number" value={mForm.amount} onChange={e => setMForm(f => ({ ...f, amount: e.target.value }))} placeholder="Price for this mow" style={{ width: "100%" }} />
+                {mForm.customerId && customers.find(c => c.id === mForm.customerId)?.price && mForm.amount !== String(customers.find(c => c.id === mForm.customerId)?.price) && (
+                  <div style={{ fontSize: 12, color: "#854F0B", marginTop: 4 }}>⚡ Custom price — standard is {fmtMoney(customers.find(c => c.id === mForm.customerId)?.price)}</div>
+                )}
+              </div>
+              <div>
+                <label style={{ fontSize: 13, color: "#888", display: "block", marginBottom: 4 }}>Date Mowed</label>
+                <input type="date" value={mForm.date} onChange={e => setMForm(f => ({ ...f, date: e.target.value }))} style={{ width: "100%" }} />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <input type="checkbox" id="paidCheck" checked={mForm.paid} onChange={e => setMForm(f => ({ ...f, paid: e.target.checked }))} style={{ width: 16, height: 16 }} />
+                <label htmlFor="paidCheck" style={{ fontSize: 14, cursor: "pointer" }}>Paid at time of mow</label>
+              </div>
+              <button onClick={logMow} style={{ background: "#1D9E75", color: "#fff", border: "none", padding: "10px", borderRadius: 8, fontWeight: 600, fontSize: 15 }}>
+                Log Mow
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* EXPENSES */}
+      {tab === "Expenses" && (
+        <div>
+          <div className="card" style={{ padding: "1.25rem", marginBottom: "1.25rem" }}>
+            <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: "1rem" }}>Add Expense</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <input value={eForm.description} onChange={e => setEForm(f => ({ ...f, description: e.target.value }))} placeholder="Description (e.g. Gas, Blade sharpening)" style={{ width: "100%" }} />
+              <div style={{ display: "flex", gap: 8 }}>
+                <input type="number" value={eForm.amount} onChange={e => setEForm(f => ({ ...f, amount: e.target.value }))} placeholder="Amount $" style={{ flex: 1 }} />
+                <input type="date" value={eForm.date} onChange={e => setEForm(f => ({ ...f, date: e.target.value }))} style={{ flex: 1 }} />
+              </div>
+              <button onClick={addExpense} style={{ background: "#A32D2D", color: "#fff", border: "none", padding: "10px", borderRadius: 8, fontWeight: 600, fontSize: 15 }}>
+                Add Expense
+              </button>
+            </div>
+          </div>
+          {expenses.length === 0 && <p style={{ color: "#888", fontSize: 14, textAlign: "center", padding: "2rem 0" }}>No expenses logged yet.</p>}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {[...expenses].sort((a,b) => b.date.localeCompare(a.date)).map(e => (
+              <div key={e.id} className="card" style={{ padding: "0.75rem 1rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 500, fontSize: 15 }}>{e.description}</div>
+                    <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{fmtDate(e.date)}</div>
+                  </div>
+                  <span style={{ fontWeight: 600, color: "#A32D2D" }}>{fmtMoney(e.amount)}</span>
+                  <button onClick={() => deleteExpense(e.id)} style={{ fontSize: 12, padding: "3px 10px", color: "#A32D2D" }}>Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* CUSTOMERS */}
+      {tab === "Customers" && (
+        <div>
+          <div className="card" style={{ padding: "1.25rem", marginBottom: "1.25rem" }}>
+            <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: "1rem" }}>{cEdit ? "Edit Customer" : "Add Customer"}</h2>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <input value={cForm.name} onChange={e => setCForm(f => ({ ...f, name: e.target.value }))} placeholder="Full name" style={{ flex: 2, minWidth: 120 }} />
+              <input value={cForm.phone} onChange={e => setCForm(f => ({ ...f, phone: e.target.value }))} placeholder="Phone (optional)" style={{ flex: 2, minWidth: 120 }} />
+              <input type="number" value={cForm.price} onChange={e => setCForm(f => ({ ...f, price: e.target.value }))} placeholder="Price $ (optional)" style={{ flex: 1, minWidth: 80 }} />
+              <button onClick={saveCustomer} style={{ background: "#1D9E75", color: "#fff", border: "none", borderRadius: 8, padding: "7px 16px", fontWeight: 600 }}>{cEdit ? "Save" : "Add"}</button>
+              {cEdit && <button onClick={() => { setCEdit(null); setCForm({ name: "", phone: "", price: "" }); }}>Cancel</button>}
+            </div>
+          </div>
+          {customers.length === 0 && <p style={{ color: "#888", fontSize: 14, textAlign: "center", padding: "2rem 0" }}>No customers yet.</p>}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {[...customers].sort((a,b) => a.name.localeCompare(b.name)).map(c => {
+              const custMows = mows.filter(m => m.customerId === c.id);
+              const lastMow = [...custMows].sort((a,b) => b.date.localeCompare(a.date))[0];
+              const unpaid = custMows.filter(m => !m.paid).length;
+              return (
+                <div key={c.id} className="card" style={{ padding: "0.75rem 1rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: 15 }}>{c.name}</div>
+                      <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
+                        {c.phone && <span>{c.phone} · </span>}
+                        {c.price ? `${fmtMoney(c.price)}/mow` : "No standard price"}
+                        {lastMow ? <span> · Last: {fmtDate(lastMow.date)}</span> : <span> · Not mowed yet</span>}
+                      </div>
+                    </div>
+                    {unpaid > 0 && <Pill label={`${unpaid} unpaid`} color="#854F0B" bg="#FAEEDA" />}
+                    <button onClick={() => startEditC(c)} style={{ fontSize: 13, padding: "3px 10px" }}>Edit</button>
+                    <button onClick={() => deleteCustomer(c.id)} style={{ fontSize: 13, padding: "3px 10px", color: "#A32D2D" }}>Delete</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* HISTORY */}
+      {tab === "History" && (
+        <div>
+          <div style={{ display: "flex", gap: 8, marginBottom: "1rem", alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ fontSize: 13, color: "#888" }}>Filter:</span>
+            <select value={hFilter} onChange={e => setHFilter(e.target.value)}>
+              <option value="All">All customers</option>
+              {[...customers].sort((a,b) => a.name.localeCompare(b.name)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          {filteredHistory.length === 0 && <p style={{ color: "#888", fontSize: 14, textAlign: "center", padding: "2rem 0" }}>No mows logged yet.</p>}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {[...filteredHistory].sort((a,b) => b.date.localeCompare(a.date)).map(m => (
+              <div key={m.id} className="card" style={{ padding: "0.75rem 1rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 500, fontSize: 15 }}>{m.customerName}</div>
+                    <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{fmtDate(m.date)}</div>
+                  </div>
+                  <span style={{ fontWeight: 600 }}>{fmtMoney(m.amount)}</span>
+                  {m.paid ? <Pill label="Paid" color="#3B6D11" bg="#EAF3DE" /> : <Pill label="Unpaid" color="#854F0B" bg="#FAEEDA" />}
+                  {!m.paid && <button onClick={() => togglePaid(m)} style={{ fontSize: 12, padding: "3px 10px", background: "#1D9E75", color: "#fff", border: "none", borderRadius: 8 }}>Mark Paid</button>}
+                  {m.paid && <button onClick={() => togglePaid(m)} style={{ fontSize: 12, padding: "3px 10px" }}>Undo</button>}
+                  <button onClick={() => deleteMow(m.id)} style={{ fontSize: 12, padding: "3px 10px", color: "#A32D2D" }}>Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
