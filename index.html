@@ -1,490 +1,1036 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Lawn Care Tracker</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>GreenTrack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyDpsulrZfn0w0-duaNhPdHfBu9NZYB6IQg",
-    authDomain: "lawn-tracker-ecae7.firebaseapp.com",
-    projectId: "lawn-tracker-ecae7",
-    storageBucket: "lawn-tracker-ecae7.firebasestorage.app",
-    messagingSenderId: "878843625144",
-    appId: "1:878843625144:web:a9cfb59426a710eccdbe4d"
-  };
-
-  const app = initializeApp(firebaseConfig);
+  const app = initializeApp({
+    apiKey:"AIzaSyDpsulrZfn0w0-duaNhPdHfBu9NZYB6IQg",
+    authDomain:"lawn-tracker-ecae7.firebaseapp.com",
+    projectId:"lawn-tracker-ecae7",
+    storageBucket:"lawn-tracker-ecae7.firebasestorage.app",
+    messagingSenderId:"878843625144",
+    appId:"1:878843625144:web:a9cfb59426a710eccdbe4d"
+  });
   const db = getFirestore(app);
-
-  window.__db = db;
-  window.__col = (name) => collection(db, name);
-  window.__onSnapshot = onSnapshot;
-  window.__addDoc = addDoc;
-  window.__updateDoc = updateDoc;
-  window.__deleteDoc = deleteDoc;
-  window.__doc = doc;
-  window.__firebaseReady = true;
+  window.__db=db; window.__col=(n)=>collection(db,n);
+  window.__onSnapshot=onSnapshot; window.__addDoc=addDoc;
+  window.__updateDoc=updateDoc; window.__deleteDoc=deleteDoc;
+  window.__doc=doc; window.__firebaseReady=true;
   window.dispatchEvent(new Event("firebaseReady"));
 </script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f3; color: #1a1a18; min-height: 100vh; }
-  input, select, button, textarea {
-    font-family: inherit; font-size: 14px; border-radius: 8px;
-    border: 0.5px solid #ccc; padding: 7px 10px; outline: none; background: #fff; color: #1a1a18;
-  }
-  input:focus, select:focus, textarea:focus { border-color: #888; box-shadow: 0 0 0 2px rgba(0,0,0,0.08); }
-  button { cursor: pointer; background: transparent; border: 0.5px solid #bbb; padding: 6px 14px; border-radius: 8px; }
-  button:hover { background: #f0efea; }
-  button:active { transform: scale(0.98); }
-  input[type="checkbox"] { cursor: pointer; accent-color: #1D9E75; }
-  .card { background: #fff; border: 0.5px solid #ddd; border-radius: 12px; }
-  @media (prefers-color-scheme: dark) {
-    body { background: #1c1c1a; color: #f0efe8; }
-    input, select, button, textarea { background: #2a2a28; color: #f0efe8; border-color: #444; }
-    button:hover { background: #333330; }
-    .card { background: #242422 !important; border-color: #383836 !important; }
-  }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:        #0a0d0f;
+  --bg1:       #111518;
+  --bg2:       #181c20;
+  --bg3:       #1e2328;
+  --bg4:       #252b31;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.12);
+
+  --text:      #f0f4f8;
+  --text2:     #8a9bb0;
+  --text3:     #4a5a6a;
+
+  --green:     #22c55e;
+  --green-dim: rgba(34,197,94,0.12);
+  --green-bg:  rgba(34,197,94,0.08);
+  --red:       #ef4444;
+  --red-dim:   rgba(239,68,68,0.12);
+  --amber:     #f59e0b;
+  --amber-dim: rgba(245,158,11,0.12);
+
+  --radius-s:  10px;
+  --radius-m:  16px;
+  --radius-l:  22px;
+
+  --nav-h:     68px;
+  --nav-pb:    env(safe-area-inset-bottom, 0px);
+  --safe-top:  env(safe-area-inset-top, 0px);
+}
+
+html,body{height:100%;overflow:hidden}
+
+body{
+  font-family:'Inter',-apple-system,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  display:flex;
+  flex-direction:column;
+  height:100dvh;
+}
+
+/* ── SCROLLABLE MAIN ── */
+#root{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+.app-shell{display:flex;flex-direction:column;height:100%;overflow:hidden}
+.screen-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.screen-area::-webkit-scrollbar{display:none}
+.screen-inner{padding:0 0 32px}
+
+/* ── TOP BAR ── */
+.topbar{
+  padding:calc(16px + var(--safe-top)) 20px 16px;
+  background:var(--bg);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+.topbar-brand{
+  font-family:'Syne',sans-serif;
+  font-size:22px;
+  font-weight:800;
+  letter-spacing:-0.03em;
+  color:var(--text);
+  line-height:1;
+}
+.topbar-brand span{color:var(--green)}
+.topbar-date{font-size:12px;color:var(--text3);font-weight:500;letter-spacing:0.02em}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{
+  background:var(--bg1);
+  border-top:1px solid var(--border);
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  height:calc(var(--nav-h) + var(--nav-pb));
+  padding-bottom:var(--nav-pb);
+  flex-shrink:0;
+}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;border:none;background:transparent;cursor:pointer;
+  color:var(--text3);transition:color 0.15s;padding:0;
+  font-family:'Inter',sans-serif;
+}
+.nav-item.active{color:var(--green)}
+.nav-item svg{width:20px;height:20px;stroke-width:1.8}
+.nav-label{font-size:9px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase}
+
+/* ── SECTION HEADER ── */
+.sh{
+  display:flex;align-items:baseline;justify-content:space-between;
+  padding:24px 20px 12px;
+}
+.sh-title{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3)}
+.sh-value{font-size:11px;font-weight:600;color:var(--text2)}
+
+/* ── HERO METRICS ── */
+.hero-block{
+  margin:20px 16px 0;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--radius-l);
+  overflow:hidden;
+}
+.hero-top{
+  padding:20px 20px 16px;
+  border-bottom:1px solid var(--border);
+}
+.hero-eyebrow{font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.hero-num{
+  font-family:'Syne',sans-serif;
+  font-size:42px;font-weight:800;letter-spacing:-0.04em;
+  line-height:1;
+  color:var(--green);
+}
+.hero-sub{font-size:12px;color:var(--text3);margin-top:6px}
+.hero-grid{display:grid;grid-template-columns:repeat(3,1fr)}
+.hero-cell{
+  padding:14px 16px;
+  border-right:1px solid var(--border);
+}
+.hero-cell:last-child{border-right:none}
+.hc-label{font-size:10px;font-weight:500;color:var(--text3);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:4px}
+.hc-val{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-0.02em}
+
+/* ── PERIOD ROWS ── */
+.periods{margin:8px 16px 0}
+.period-row{
+  display:grid;grid-template-columns:100px 1fr 1fr 1fr;
+  align-items:center;gap:0;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--radius-m);
+  margin-bottom:8px;
+  overflow:hidden;
+}
+.pr-label{
+  padding:14px 0 14px 16px;
+  font-size:12px;font-weight:600;color:var(--text2);
+}
+.pr-cell{
+  padding:14px 12px;
+  border-left:1px solid var(--border);
+  text-align:right;
+}
+.pr-key{font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);margin-bottom:3px}
+.pr-val{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-0.02em}
+
+/* ── UNPAID BANNER ── */
+.unpaid-banner{
+  margin:8px 16px 0;
+  background:var(--amber-dim);
+  border:1px solid rgba(245,158,11,0.2);
+  border-radius:var(--radius-m);
+  overflow:hidden;
+}
+.ub-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;border-bottom:1px solid rgba(245,158,11,0.15);
+}
+.ub-title{font-size:12px;font-weight:700;color:var(--amber);letter-spacing:0.02em}
+.ub-total{font-size:12px;font-weight:700;color:var(--amber);font-variant-numeric:tabular-nums}
+.ub-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px;border-bottom:1px solid rgba(245,158,11,0.08);
+  gap:10px;
+}
+.ub-row:last-child{border-bottom:none}
+.ub-name{font-size:13px;font-weight:600;color:var(--text)}
+.ub-date{font-size:11px;color:var(--text3);margin-top:1px}
+.ub-right{display:flex;align-items:center;gap:8px}
+.ub-amt{font-size:14px;font-weight:700;color:var(--amber);font-variant-numeric:tabular-nums}
+
+/* ── PAID BADGE ── */
+.all-paid{
+  margin:8px 16px 0;
+  display:flex;align-items:center;gap:10px;
+  background:var(--green-bg);
+  border:1px solid rgba(34,197,94,0.15);
+  border-radius:var(--radius-m);
+  padding:12px 16px;
+  font-size:12px;font-weight:600;color:var(--green);
+}
+
+/* ── FORM SCREEN ── */
+.form-wrap{padding:20px 16px}
+.form-screen-title{
+  font-family:'Syne',sans-serif;
+  font-size:26px;font-weight:800;letter-spacing:-0.03em;
+  color:var(--text);margin-bottom:6px;line-height:1.1;
+}
+.form-screen-sub{font-size:13px;color:var(--text3);margin-bottom:24px}
+
+.field-group{margin-bottom:16px}
+.field-label{
+  display:block;font-size:10px;font-weight:700;
+  letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--text3);margin-bottom:7px;
+}
+
+input,select,textarea{
+  font-family:'Inter',sans-serif;
+  font-size:15px;font-weight:500;
+  width:100%;padding:13px 14px;
+  background:var(--bg2);
+  border:1px solid var(--border2);
+  border-radius:var(--radius-s);
+  color:var(--text);
+  outline:none;
+  -webkit-appearance:none;
+  appearance:none;
+  transition:border-color 0.15s,box-shadow 0.15s;
+}
+input::placeholder,select::placeholder{color:var(--text3)}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--green);
+  box-shadow:0 0 0 3px rgba(34,197,94,0.1);
+}
+select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234a5a6a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;
+  padding-right:36px;
+}
+input[type="checkbox"]{
+  width:20px;height:20px;padding:0;flex-shrink:0;
+  accent-color:var(--green);border-radius:5px;
+  background:var(--bg2);
+}
+
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+.check-row{display:flex;align-items:center;gap:10px;cursor:pointer}
+.check-text{font-size:14px;font-weight:500;color:var(--text2)}
+
+/* ── PRICE HINT ── */
+.price-hint{
+  font-size:11px;color:var(--amber);margin-top:5px;
+  display:flex;align-items:center;gap:4px;font-weight:500;
+}
+
+/* ── BUTTONS ── */
+.btn-primary{
+  width:100%;padding:15px;margin-top:4px;
+  background:var(--green);color:#000;
+  font-family:'Inter',sans-serif;font-size:15px;font-weight:700;
+  letter-spacing:0.01em;
+  border:none;border-radius:var(--radius-s);
+  cursor:pointer;
+  transition:opacity 0.15s,transform 0.12s;
+}
+.btn-primary:active{transform:scale(0.98);opacity:0.9}
+
+.btn-red{
+  width:100%;padding:15px;margin-top:4px;
+  background:var(--red);color:#fff;
+  font-family:'Inter',sans-serif;font-size:15px;font-weight:700;
+  border:none;border-radius:var(--radius-s);
+  cursor:pointer;
+  transition:opacity 0.15s,transform 0.12s;
+}
+.btn-red:active{transform:scale(0.98)}
+
+.btn-cancel{
+  width:100%;padding:13px;margin-top:8px;
+  background:transparent;color:var(--text3);
+  font-family:'Inter',sans-serif;font-size:14px;font-weight:600;
+  border:1px solid var(--border2);border-radius:var(--radius-s);
+  cursor:pointer;
+  transition:background 0.15s;
+}
+.btn-cancel:hover{background:var(--bg2)}
+
+.btn-sm{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:7px 13px;
+  font-family:'Inter',sans-serif;font-size:12px;font-weight:600;
+  border-radius:8px;cursor:pointer;border:none;
+  white-space:nowrap;
+  transition:opacity 0.15s,transform 0.12s;
+}
+.btn-sm:active{transform:scale(0.97)}
+.btn-sm-green{background:var(--green-dim);color:var(--green)}
+.btn-sm-red{background:var(--red-dim);color:var(--red)}
+.btn-sm-ghost{background:var(--bg3);color:var(--text2);border:1px solid var(--border2)}
+.btn-sm-amber{background:var(--amber-dim);color:var(--amber)}
+
+/* ── PILLS ── */
+.pill{
+  display:inline-flex;align-items:center;
+  font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;
+  padding:3px 8px;border-radius:99px;
+}
+.pill-green{background:var(--green-dim);color:var(--green)}
+.pill-amber{background:var(--amber-dim);color:var(--amber)}
+.pill-red{background:var(--red-dim);color:var(--red)}
+
+/* ── ITEM LIST ── */
+.item-list{margin:0 16px}
+.item-card{
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--radius-m);
+  margin-bottom:8px;
+  overflow:hidden;
+}
+.item-main{display:flex;align-items:center;gap:10px;padding:14px 16px}
+.item-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.3}
+.item-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.item-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.item-amount{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-0.02em}
+.item-actions{
+  display:flex;gap:6px;padding:10px 16px 14px;
+  border-top:1px solid var(--border);
+}
+
+/* ── CUSTOMER CARD ── */
+.cust-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius-m);margin-bottom:8px;
+}
+.cust-top{display:flex;align-items:flex-start;gap:12px;padding:14px 16px 12px}
+.cust-avatar{
+  width:38px;height:38px;border-radius:10px;
+  background:var(--green-dim);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:800;color:var(--green);
+  flex-shrink:0;font-family:'Syne',sans-serif;letter-spacing:-0.02em;
+}
+.cust-info{flex:1;min-width:0}
+.cust-name{font-size:14px;font-weight:700;color:var(--text)}
+.cust-meta{font-size:11px;color:var(--text3);margin-top:2px;line-height:1.4}
+.cust-actions{display:flex;gap:6px;padding:10px 16px 14px;border-top:1px solid var(--border)}
+
+/* ── HISTORY ── */
+.hist-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius-m);margin-bottom:8px;
+}
+.hist-main{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;gap:10px}
+.hist-left{flex:1;min-width:0}
+.hist-name{font-size:14px;font-weight:600;color:var(--text)}
+.hist-date{font-size:11px;color:var(--text3);margin-top:2px}
+.hist-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.hist-amt{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-0.02em}
+.hist-actions{display:flex;gap:6px;padding:10px 16px 14px;border-top:1px solid var(--border)}
+
+/* ── FILTER ROW ── */
+.filter-row{
+  display:flex;align-items:center;gap:10px;
+  padding:16px 16px 8px;
+}
+.filter-label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap}
+.filter-row select{flex:1}
+
+/* ── EXPORT ── */
+.export-card{
+  display:flex;align-items:center;gap:14px;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--radius-m);margin-bottom:8px;
+  padding:16px;
+  transition:border-color 0.15s;
+}
+.export-card:not([data-disabled]){}
+.export-icon{
+  width:44px;height:44px;border-radius:12px;
+  background:var(--bg3);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.export-icon svg{width:20px;height:20px;color:var(--text2)}
+.export-info{flex:1;min-width:0}
+.export-title{font-size:14px;font-weight:700;color:var(--text)}
+.export-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.btn-dl{
+  background:var(--green);color:#000;border:none;
+  padding:9px 14px;font-size:12px;font-weight:700;
+  border-radius:8px;cursor:pointer;flex-shrink:0;
+  font-family:'Inter',sans-serif;
+  transition:opacity 0.15s;letter-spacing:0.01em;
+}
+.btn-dl:disabled{opacity:0.3;cursor:default}
+
+/* ── EMPTY ── */
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;
+  padding:60px 24px;gap:8px;text-align:center;
+}
+.empty-icon{
+  width:52px;height:52px;border-radius:14px;
+  background:var(--bg2);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:4px;
+}
+.empty-icon svg{width:24px;height:24px;color:var(--text3)}
+.empty-title{font-size:15px;font-weight:700;color:var(--text2)}
+.empty-body{font-size:13px;color:var(--text3);line-height:1.5;max-width:220px}
+
+/* ── LOADING ── */
+.loading{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100dvh;gap:14px;background:var(--bg);
+}
+.loading-mark{
+  width:52px;height:52px;border-radius:14px;
+  background:var(--green);
+  display:flex;align-items:center;justify-content:center;
+}
+.loading-mark svg{width:28px;height:28px;color:#000}
+.loading-text{font-size:13px;font-weight:500;color:var(--text3)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin 0.8s linear infinite}
+
+/* ── DIVIDER ── */
+.divider{height:1px;background:var(--border);margin:0 16px}
+
+/* no number spinners */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect } = React;
-const TABS = ["Dashboard", "Log Mow", "Expenses", "Customers", "History", "Export"];
 
-function todayStr() { return new Date().toISOString().slice(0, 10); }
-function fmtDate(d) { return new Date(d + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
-function fmtMoney(n) { return "$" + Number(n || 0).toFixed(2); }
-function getWeekKey(dateStr) {
-  const d = new Date(dateStr + "T00:00:00"), day = d.getDay();
-  const mon = new Date(d); mon.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
-  return mon.toISOString().slice(0, 10);
+// ── utils ──
+function todayStr(){ return new Date().toISOString().slice(0,10) }
+function fmtDate(d){ return new Date(d+"T00:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}) }
+function fmtMoney(n){ return "$"+Number(n||0).toFixed(2) }
+function getWeekKey(s){
+  const d=new Date(s+"T00:00:00"),day=d.getDay();
+  const m=new Date(d); m.setDate(d.getDate()-(day===0?6:day-1));
+  return m.toISOString().slice(0,10);
 }
-function getMonthKey(d) { return d.slice(0, 7); }
-function getYearKey(d) { return d.slice(0, 4); }
+function getMonthKey(d){ return d.slice(0,7) }
+function getYearKey(d){ return d.slice(0,4) }
+function initials(name){ return name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase() }
 
-const Pill = ({ label, color, bg }) => (
-  <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: bg, color, fontWeight: 500 }}>{label}</span>
-);
-function StatCard({ label, value, sub, valueColor }) {
-  return (
-    <div className="card" style={{ padding: "1rem 1.25rem", flex: 1, minWidth: 130 }}>
-      <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>{label}</div>
-      <div style={{ fontSize: 20, fontWeight: 600, color: valueColor || "inherit" }}>{value}</div>
-      {sub && <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{sub}</div>}
-    </div>
-  );
-}
-function SectionHeader({ title }) {
-  return <div style={{ fontSize: 11, fontWeight: 600, color: "#888", textTransform: "uppercase", letterSpacing: 1, margin: "1.25rem 0 0.5rem" }}>{title}</div>;
-}
-
-function useCollection(name, ready) {
-  const [items, setItems] = useState([]);
-  useEffect(() => {
-    if (!ready) return;
-    const unsub = window.__onSnapshot(window.__col(name), snap => {
-      setItems(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+function useCollection(name, ready){
+  const [items,setItems]=useState([]);
+  useEffect(()=>{
+    if(!ready) return;
+    return window.__onSnapshot(window.__col(name),snap=>{
+      setItems(snap.docs.map(d=>({id:d.id,...d.data()})));
     });
-    return unsub;
-  }, [name, ready]);
+  },[name,ready]);
   return items;
 }
 
-function App() {
-  const [ready, setReady] = useState(!!window.__firebaseReady);
-  useEffect(() => {
-    if (window.__firebaseReady) return;
-    const handler = () => setReady(true);
-    window.addEventListener("firebaseReady", handler);
-    return () => window.removeEventListener("firebaseReady", handler);
-  }, []);
+// ── Icons ──
+const IconHome = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
+const IconScissors = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>;
+const IconDollar = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>;
+const IconUsers = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>;
+const IconClock = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+const IconDownload = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
+const IconCheck = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>;
+const IconTrash = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>;
+const IconEdit = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+const IconLeaf = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 22c1.25-1.25 3.33-2 5-2 3.87 0 5.51-2.9 7-6 1.5-3.1 3.13-6 7-6 1.67 0 3.75.75 5 2"/><path d="M2 22c0-8 4-14 10-16"/></svg>;
+const IconFilter = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>;
+const IconBarChart = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>;
+const IconWarning = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
 
-  const customers = useCollection("customers", ready);
-  const mows = useCollection("mows", ready);
-  const expenses = useCollection("expenses", ready);
+const TABS = [
+  { id:"Dashboard",  Icon:IconHome,     label:"Home" },
+  { id:"Log Mow",    Icon:IconScissors, label:"Mow" },
+  { id:"Expenses",   Icon:IconDollar,   label:"Expenses" },
+  { id:"Customers",  Icon:IconUsers,    label:"Clients" },
+  { id:"History",    Icon:IconClock,    label:"History" },
+  { id:"Export",     Icon:IconDownload, label:"Export" },
+];
 
-  const [tab, setTab] = useState("Dashboard");
-  const [cForm, setCForm] = useState({ name: "", phone: "", price: "" });
-  const [cEdit, setCEdit] = useState(null);
-  const [mForm, setMForm] = useState({ customerId: "", date: todayStr(), paid: true, amount: "" });
-  const [eForm, setEForm] = useState({ description: "", amount: "", date: todayStr() });
-  const [hFilter, setHFilter] = useState("All");
-
-  // customers
-  async function saveCustomer() {
-    if (!cForm.name.trim()) return;
-    const data = { name: cForm.name.trim(), phone: cForm.phone.trim(), price: cForm.price ? parseFloat(cForm.price) : null };
-    if (cEdit) {
-      await window.__updateDoc(window.__doc(window.__db, "customers", cEdit), data);
-      setCEdit(null);
-    } else {
-      await window.__addDoc(window.__col("customers"), data);
-    }
-    setCForm({ name: "", phone: "", price: "" });
-  }
-  function startEditC(c) { setCEdit(c.id); setCForm({ name: c.name, phone: c.phone || "", price: c.price ? String(c.price) : "" }); }
-  async function deleteCustomer(id) {
-    if (!window.confirm("Delete this customer and all their mow history?")) return;
-    await window.__deleteDoc(window.__doc(window.__db, "customers", id));
-    const custMows = mows.filter(m => m.customerId === id);
-    await Promise.all(custMows.map(m => window.__deleteDoc(window.__doc(window.__db, "mows", m.id))));
-  }
-
-  // mows
-  async function logMow() {
-    if (!mForm.customerId || !mForm.date || !mForm.amount) return;
-    const cust = customers.find(c => c.id === mForm.customerId);
-    if (!cust) return;
-    await window.__addDoc(window.__col("mows"), {
-      customerId: cust.id, customerName: cust.name,
-      date: mForm.date, paid: mForm.paid, amount: parseFloat(mForm.amount)
-    });
-    setMForm({ customerId: "", date: todayStr(), paid: true, amount: "" });
-  }
-  async function togglePaid(m) {
-    await window.__updateDoc(window.__doc(window.__db, "mows", m.id), { paid: !m.paid });
-  }
-  async function deleteMow(id) {
-    await window.__deleteDoc(window.__doc(window.__db, "mows", id));
-  }
-
-  // expenses
-  async function addExpense() {
-    if (!eForm.description.trim() || !eForm.amount || !eForm.date) return;
-    await window.__addDoc(window.__col("expenses"), {
-      description: eForm.description.trim(), amount: parseFloat(eForm.amount), date: eForm.date
-    });
-    setEForm({ description: "", amount: "", date: todayStr() });
-  }
-  async function deleteExpense(id) {
-    await window.__deleteDoc(window.__doc(window.__db, "expenses", id));
-  }
-
-  // stats
-  const now = todayStr();
-  const wk = getWeekKey(now), mo = getMonthKey(now), yr = getYearKey(now);
-  const paidMows = mows.filter(m => m.paid);
-  const earn = arr => arr.reduce((s, m) => s + (m.amount || 0), 0);
-  const weekEarn = earn(paidMows.filter(m => getWeekKey(m.date) === wk));
-  const monthEarn = earn(paidMows.filter(m => getMonthKey(m.date) === mo));
-  const yearEarn = earn(paidMows.filter(m => getYearKey(m.date) === yr));
-  const allEarn = earn(paidMows);
-  const weekExp = earn(expenses.filter(e => getWeekKey(e.date) === wk));
-  const monthExp = earn(expenses.filter(e => getMonthKey(e.date) === mo));
-  const yearExp = earn(expenses.filter(e => getYearKey(e.date) === yr));
-  const allExp = earn(expenses);
-  const unpaidMows = mows.filter(m => !m.paid);
-  const weekMows = mows.filter(m => getWeekKey(m.date) === wk).length;
-  const monthMows = mows.filter(m => getMonthKey(m.date) === mo).length;
-  const filteredHistory = hFilter === "All" ? mows : mows.filter(m => m.customerId === hFilter);
-  const netColor = n => n >= 0 ? "#1D9E75" : "#A32D2D";
-
-  function downloadCSV(filename, rows) {
-    const csv = rows.map(r => r.map(cell => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    a.download = filename;
-    a.click();
-  }
-
-  function exportMows() {
-    const rows = [["Date", "Customer", "Amount", "Paid"]];
-    [...mows].sort((a,b) => b.date.localeCompare(a.date)).forEach(m => {
-      rows.push([fmtDate(m.date), m.customerName, m.amount.toFixed(2), m.paid ? "Yes" : "No"]);
-    });
-    downloadCSV("mows.csv", rows);
-  }
-
-  function exportExpenses() {
-    const rows = [["Date", "Description", "Amount"]];
-    [...expenses].sort((a,b) => b.date.localeCompare(a.date)).forEach(e => {
-      rows.push([fmtDate(e.date), e.description, e.amount.toFixed(2)]);
-    });
-    downloadCSV("expenses.csv", rows);
-  }
-
-  function exportSummary() {
-    const rows = [["Period", "Earned", "Expenses", "Net Profit"]];
-    rows.push(["This Week", weekEarn.toFixed(2), weekExp.toFixed(2), (weekEarn - weekExp).toFixed(2)]);
-    rows.push(["This Month", monthEarn.toFixed(2), monthExp.toFixed(2), (monthEarn - monthExp).toFixed(2)]);
-    rows.push(["This Year", yearEarn.toFixed(2), yearExp.toFixed(2), (yearEarn - yearExp).toFixed(2)]);
-    rows.push(["All Time", allEarn.toFixed(2), allExp.toFixed(2), (allEarn - allExp).toFixed(2)]);
-    downloadCSV("summary.csv", rows);
-  }
-
-  function exportCustomers() {
-    const rows = [["Name", "Phone", "Standard Price", "Total Mows", "Total Earned", "Last Mowed"]];
-    [...customers].sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
-      const custMows = mows.filter(m => m.customerId === c.id);
-      const lastMow = [...custMows].sort((a,b) => b.date.localeCompare(a.date))[0];
-      const totalEarned = custMows.filter(m => m.paid).reduce((s, m) => s + m.amount, 0);
-      rows.push([c.name, c.phone || "", c.price ? c.price.toFixed(2) : "", custMows.length, totalEarned.toFixed(2), lastMow ? fmtDate(lastMow.date) : "Never"]);
-    });
-    downloadCSV("customers.csv", rows);
-  }
-
-  if (!ready) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 12 }}>
-      <div style={{ fontSize: 32 }}>🌿</div>
-      <div style={{ fontSize: 16, color: "#888" }}>Connecting to database…</div>
-    </div>
-  );
-
+function PeriodRow({ label, earned, expenses }){
+  const net = earned - expenses;
   return (
-    <div style={{ maxWidth: 680, margin: "0 auto", padding: "2rem 1rem" }}>
-      <h1 style={{ fontSize: 24, fontWeight: 600, marginBottom: 4 }}>🌿 Lawn Care Tracker</h1>
-      <p style={{ fontSize: 13, color: "#888", marginBottom: "1.5rem" }}>Track customers, mows, expenses & earnings</p>
-
-      <div style={{ display: "flex", gap: 2, marginBottom: "1.5rem", borderBottom: "0.5px solid #ddd", overflowX: "auto" }}>
-        {TABS.map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            padding: "7px 14px", borderRadius: "8px 8px 0 0", border: "none", fontSize: 13, whiteSpace: "nowrap",
-            fontWeight: tab === t ? 600 : 400,
-            background: tab === t ? "#fff" : "transparent",
-            borderBottom: tab === t ? "2px solid #1D9E75" : "2px solid transparent",
-            color: tab === t ? "#1D9E75" : "#888"
-          }}>{t}</button>
-        ))}
+    <div className="period-row">
+      <div className="pr-label">{label}</div>
+      <div className="pr-cell">
+        <div className="pr-key">Earned</div>
+        <div className="pr-val" style={{color:"var(--green)"}}>{fmtMoney(earned)}</div>
       </div>
-
-      {/* DASHBOARD */}
-      {tab === "Dashboard" && (
-        <div>
-          <SectionHeader title="This Week" />
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-            <StatCard label="Earned" value={fmtMoney(weekEarn)} sub={`${weekMows} mow${weekMows !== 1 ? "s" : ""}`} />
-            <StatCard label="Expenses" value={fmtMoney(weekExp)} valueColor="#A32D2D" />
-            <StatCard label="Net Profit" value={fmtMoney(weekEarn - weekExp)} valueColor={netColor(weekEarn - weekExp)} />
-          </div>
-          <SectionHeader title="This Month" />
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-            <StatCard label="Earned" value={fmtMoney(monthEarn)} sub={`${monthMows} mow${monthMows !== 1 ? "s" : ""}`} />
-            <StatCard label="Expenses" value={fmtMoney(monthExp)} valueColor="#A32D2D" />
-            <StatCard label="Net Profit" value={fmtMoney(monthEarn - monthExp)} valueColor={netColor(monthEarn - monthExp)} />
-          </div>
-          <SectionHeader title="This Year" />
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-            <StatCard label="Earned" value={fmtMoney(yearEarn)} />
-            <StatCard label="Expenses" value={fmtMoney(yearExp)} valueColor="#A32D2D" />
-            <StatCard label="Net Profit" value={fmtMoney(yearEarn - yearExp)} valueColor={netColor(yearEarn - yearExp)} />
-          </div>
-          <SectionHeader title="All Time" />
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: "1.25rem" }}>
-            <StatCard label="Earned" value={fmtMoney(allEarn)} />
-            <StatCard label="Expenses" value={fmtMoney(allExp)} valueColor="#A32D2D" />
-            <StatCard label="Net Profit" value={fmtMoney(allEarn - allExp)} valueColor={netColor(allEarn - allExp)} />
-          </div>
-          {unpaidMows.length > 0 && (
-            <div style={{ background: "#FAEEDA", border: "0.5px solid #f0c070", borderRadius: 12, padding: "1rem 1.25rem", marginBottom: "1rem" }}>
-              <div style={{ fontWeight: 600, color: "#854F0B", marginBottom: 8 }}>⚠️ Unpaid ({unpaidMows.length}) — {fmtMoney(earn(unpaidMows))} owed</div>
-              {unpaidMows.map(m => (
-                <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 14, padding: "5px 0", borderTop: "0.5px solid #f0c07040" }}>
-                  <span>{m.customerName} <span style={{ color: "#aaa", fontSize: 12 }}>— {fmtDate(m.date)}</span></span>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <span style={{ fontWeight: 600 }}>{fmtMoney(m.amount)}</span>
-                    <button onClick={() => togglePaid(m)} style={{ fontSize: 12, padding: "3px 10px", background: "#1D9E75", color: "#fff", border: "none", borderRadius: 8 }}>Mark Paid</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {unpaidMows.length === 0 && mows.length > 0 && (
-            <div style={{ background: "#EAF3DE", border: "0.5px solid #b2d98a", borderRadius: 12, padding: "0.75rem 1.25rem", color: "#3B6D11", fontSize: 14 }}>
-              ✅ All mows are paid up!
-            </div>
-          )}
-          {mows.length === 0 && expenses.length === 0 && (
-            <p style={{ color: "#888", fontSize: 14, textAlign: "center", padding: "2rem 0" }}>No data yet — add customers and log some mows!</p>
-          )}
-        </div>
-      )}
-
-      {/* LOG MOW */}
-      {tab === "Log Mow" && (
-        <div className="card" style={{ padding: "1.25rem" }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: "1rem" }}>Log a Mow</h2>
-          {customers.length === 0 ? (
-            <p style={{ color: "#888", fontSize: 14 }}>Add customers first in the Customers tab.</p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div>
-                <label style={{ fontSize: 13, color: "#888", display: "block", marginBottom: 4 }}>Customer</label>
-                <select value={mForm.customerId} onChange={e => {
-                  const cust = customers.find(c => c.id === e.target.value);
-                  setMForm(f => ({ ...f, customerId: e.target.value, amount: cust?.price ? String(cust.price) : "" }));
-                }} style={{ width: "100%" }}>
-                  <option value="">— Select customer —</option>
-                  {[...customers].sort((a,b) => a.name.localeCompare(b.name)).map(c => (
-                    <option key={c.id} value={c.id}>{c.name}{c.price ? ` (${fmtMoney(c.price)})` : ""}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: 13, color: "#888", display: "block", marginBottom: 4 }}>Amount ($)</label>
-                <input type="number" value={mForm.amount} onChange={e => setMForm(f => ({ ...f, amount: e.target.value }))} placeholder="Price for this mow" style={{ width: "100%" }} />
-                {mForm.customerId && customers.find(c => c.id === mForm.customerId)?.price && mForm.amount !== String(customers.find(c => c.id === mForm.customerId)?.price) && (
-                  <div style={{ fontSize: 12, color: "#854F0B", marginTop: 4 }}>⚡ Custom price — standard is {fmtMoney(customers.find(c => c.id === mForm.customerId)?.price)}</div>
-                )}
-              </div>
-              <div>
-                <label style={{ fontSize: 13, color: "#888", display: "block", marginBottom: 4 }}>Date Mowed</label>
-                <input type="date" value={mForm.date} onChange={e => setMForm(f => ({ ...f, date: e.target.value }))} style={{ width: "100%" }} />
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <input type="checkbox" id="paidCheck" checked={mForm.paid} onChange={e => setMForm(f => ({ ...f, paid: e.target.checked }))} style={{ width: 16, height: 16 }} />
-                <label htmlFor="paidCheck" style={{ fontSize: 14, cursor: "pointer" }}>Paid at time of mow</label>
-              </div>
-              <button onClick={logMow} style={{ background: "#1D9E75", color: "#fff", border: "none", padding: "10px", borderRadius: 8, fontWeight: 600, fontSize: 15 }}>
-                Log Mow
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* EXPENSES */}
-      {tab === "Expenses" && (
-        <div>
-          <div className="card" style={{ padding: "1.25rem", marginBottom: "1.25rem" }}>
-            <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: "1rem" }}>Add Expense</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <input value={eForm.description} onChange={e => setEForm(f => ({ ...f, description: e.target.value }))} placeholder="Description (e.g. Gas, Blade sharpening)" style={{ width: "100%" }} />
-              <div style={{ display: "flex", gap: 8 }}>
-                <input type="number" value={eForm.amount} onChange={e => setEForm(f => ({ ...f, amount: e.target.value }))} placeholder="Amount $" style={{ flex: 1 }} />
-                <input type="date" value={eForm.date} onChange={e => setEForm(f => ({ ...f, date: e.target.value }))} style={{ flex: 1 }} />
-              </div>
-              <button onClick={addExpense} style={{ background: "#A32D2D", color: "#fff", border: "none", padding: "10px", borderRadius: 8, fontWeight: 600, fontSize: 15 }}>
-                Add Expense
-              </button>
-            </div>
-          </div>
-          {expenses.length === 0 && <p style={{ color: "#888", fontSize: 14, textAlign: "center", padding: "2rem 0" }}>No expenses logged yet.</p>}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {[...expenses].sort((a,b) => b.date.localeCompare(a.date)).map(e => (
-              <div key={e.id} className="card" style={{ padding: "0.75rem 1rem" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 500, fontSize: 15 }}>{e.description}</div>
-                    <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{fmtDate(e.date)}</div>
-                  </div>
-                  <span style={{ fontWeight: 600, color: "#A32D2D" }}>{fmtMoney(e.amount)}</span>
-                  <button onClick={() => deleteExpense(e.id)} style={{ fontSize: 12, padding: "3px 10px", color: "#A32D2D" }}>Delete</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* CUSTOMERS */}
-      {tab === "Customers" && (
-        <div>
-          <div className="card" style={{ padding: "1.25rem", marginBottom: "1.25rem" }}>
-            <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: "1rem" }}>{cEdit ? "Edit Customer" : "Add Customer"}</h2>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <input value={cForm.name} onChange={e => setCForm(f => ({ ...f, name: e.target.value }))} placeholder="Full name" style={{ flex: 2, minWidth: 120 }} />
-              <input value={cForm.phone} onChange={e => setCForm(f => ({ ...f, phone: e.target.value }))} placeholder="Phone (optional)" style={{ flex: 2, minWidth: 120 }} />
-              <input type="number" value={cForm.price} onChange={e => setCForm(f => ({ ...f, price: e.target.value }))} placeholder="Price $ (optional)" style={{ flex: 1, minWidth: 80 }} />
-              <button onClick={saveCustomer} style={{ background: "#1D9E75", color: "#fff", border: "none", borderRadius: 8, padding: "7px 16px", fontWeight: 600 }}>{cEdit ? "Save" : "Add"}</button>
-              {cEdit && <button onClick={() => { setCEdit(null); setCForm({ name: "", phone: "", price: "" }); }}>Cancel</button>}
-            </div>
-          </div>
-          {customers.length === 0 && <p style={{ color: "#888", fontSize: 14, textAlign: "center", padding: "2rem 0" }}>No customers yet.</p>}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {[...customers].sort((a,b) => a.name.localeCompare(b.name)).map(c => {
-              const custMows = mows.filter(m => m.customerId === c.id);
-              const lastMow = [...custMows].sort((a,b) => b.date.localeCompare(a.date))[0];
-              const unpaid = custMows.filter(m => !m.paid).length;
-              return (
-                <div key={c.id} className="card" style={{ padding: "0.75rem 1rem" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: 15 }}>{c.name}</div>
-                      <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-                        {c.phone && <span>{c.phone} · </span>}
-                        {c.price ? `${fmtMoney(c.price)}/mow` : "No standard price"}
-                        {lastMow ? <span> · Last: {fmtDate(lastMow.date)}</span> : <span> · Not mowed yet</span>}
-                      </div>
-                    </div>
-                    {unpaid > 0 && <Pill label={`${unpaid} unpaid`} color="#854F0B" bg="#FAEEDA" />}
-                    <button onClick={() => startEditC(c)} style={{ fontSize: 13, padding: "3px 10px" }}>Edit</button>
-                    <button onClick={() => deleteCustomer(c.id)} style={{ fontSize: 13, padding: "3px 10px", color: "#A32D2D" }}>Delete</button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* EXPORT */}
-      {tab === "Export" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <p style={{ fontSize: 13, color: "#888" }}>Download your data as CSV files — great for taxes or keeping a backup.</p>
-
-          {[
-            { label: "📋 Earnings Summary", sub: "Week, month, year & all-time totals", fn: exportSummary, disabled: mows.length === 0 },
-            { label: "🌿 All Mows", sub: `${mows.length} mow${mows.length !== 1 ? "s" : ""} logged`, fn: exportMows, disabled: mows.length === 0 },
-            { label: "💸 All Expenses", sub: `${expenses.length} expense${expenses.length !== 1 ? "s" : ""} logged`, fn: exportExpenses, disabled: expenses.length === 0 },
-            { label: "👤 Customer List", sub: `${customers.length} customer${customers.length !== 1 ? "s" : ""} with stats`, fn: exportCustomers, disabled: customers.length === 0 },
-          ].map(({ label, sub, fn, disabled }) => (
-            <div key={label} className="card" style={{ padding: "1rem 1.25rem", display: "flex", alignItems: "center", gap: 12, opacity: disabled ? 0.5 : 1 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>{label}</div>
-                <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{sub}</div>
-              </div>
-              <button onClick={fn} disabled={disabled} style={{ background: "#1D9E75", color: "#fff", border: "none", borderRadius: 8, padding: "7px 16px", fontWeight: 600, fontSize: 13 }}>
-                Download
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* HISTORY */}
-      {tab === "History" && (
-        <div>
-          <div style={{ display: "flex", gap: 8, marginBottom: "1rem", alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ fontSize: 13, color: "#888" }}>Filter:</span>
-            <select value={hFilter} onChange={e => setHFilter(e.target.value)}>
-              <option value="All">All customers</option>
-              {[...customers].sort((a,b) => a.name.localeCompare(b.name)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-          {filteredHistory.length === 0 && <p style={{ color: "#888", fontSize: 14, textAlign: "center", padding: "2rem 0" }}>No mows logged yet.</p>}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {[...filteredHistory].sort((a,b) => b.date.localeCompare(a.date)).map(m => (
-              <div key={m.id} className="card" style={{ padding: "0.75rem 1rem" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 500, fontSize: 15 }}>{m.customerName}</div>
-                    <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{fmtDate(m.date)}</div>
-                  </div>
-                  <span style={{ fontWeight: 600 }}>{fmtMoney(m.amount)}</span>
-                  {m.paid ? <Pill label="Paid" color="#3B6D11" bg="#EAF3DE" /> : <Pill label="Unpaid" color="#854F0B" bg="#FAEEDA" />}
-                  {!m.paid && <button onClick={() => togglePaid(m)} style={{ fontSize: 12, padding: "3px 10px", background: "#1D9E75", color: "#fff", border: "none", borderRadius: 8 }}>Mark Paid</button>}
-                  {m.paid && <button onClick={() => togglePaid(m)} style={{ fontSize: 12, padding: "3px 10px" }}>Undo</button>}
-                  <button onClick={() => deleteMow(m.id)} style={{ fontSize: 12, padding: "3px 10px", color: "#A32D2D" }}>Delete</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <div className="pr-cell">
+        <div className="pr-key">Spent</div>
+        <div className="pr-val" style={{color:"var(--red)"}}>{fmtMoney(expenses)}</div>
+      </div>
+      <div className="pr-cell">
+        <div className="pr-key">Net</div>
+        <div className="pr-val" style={{color:net>=0?"var(--green)":"var(--red)"}}>{fmtMoney(net)}</div>
+      </div>
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+function EmptyState({ icon: Icon, title, body }){
+  return (
+    <div className="empty-state">
+      <div className="empty-icon"><Icon/></div>
+      <div className="empty-title">{title}</div>
+      <div className="empty-body">{body}</div>
+    </div>
+  );
+}
+
+function App(){
+  const [ready,setReady]=useState(!!window.__firebaseReady);
+  useEffect(()=>{
+    if(window.__firebaseReady) return;
+    const h=()=>setReady(true);
+    window.addEventListener("firebaseReady",h);
+    return ()=>window.removeEventListener("firebaseReady",h);
+  },[]);
+
+  const customers = useCollection("customers",ready);
+  const mows      = useCollection("mows",ready);
+  const expenses  = useCollection("expenses",ready);
+
+  const [tab,setTab]   = useState("Dashboard");
+  const [cForm,setCForm] = useState({name:"",phone:"",price:""});
+  const [cEdit,setCEdit] = useState(null);
+  const [mForm,setMForm] = useState({customerId:"",date:todayStr(),paid:true,amount:""});
+  const [eForm,setEForm] = useState({description:"",amount:"",date:todayStr()});
+  const [hFilter,setHFilter] = useState("All");
+
+  // customers
+  async function saveCustomer(){
+    if(!cForm.name.trim()) return;
+    const data={name:cForm.name.trim(),phone:cForm.phone.trim(),price:cForm.price?parseFloat(cForm.price):null};
+    if(cEdit){
+      await window.__updateDoc(window.__doc(window.__db,"customers",cEdit),data);
+      setCEdit(null);
+    } else {
+      await window.__addDoc(window.__col("customers"),data);
+    }
+    setCForm({name:"",phone:"",price:""});
+  }
+  function startEditC(c){ setCEdit(c.id); setCForm({name:c.name,phone:c.phone||"",price:c.price?String(c.price):""}); }
+  async function deleteCustomer(id){
+    if(!window.confirm("Delete this customer and all mow history?")) return;
+    await window.__deleteDoc(window.__doc(window.__db,"customers",id));
+    await Promise.all(mows.filter(m=>m.customerId===id).map(m=>window.__deleteDoc(window.__doc(window.__db,"mows",m.id))));
+  }
+
+  // mows
+  async function logMow(){
+    if(!mForm.customerId||!mForm.date||!mForm.amount) return;
+    const cust=customers.find(c=>c.id===mForm.customerId);
+    if(!cust) return;
+    await window.__addDoc(window.__col("mows"),{
+      customerId:cust.id,customerName:cust.name,
+      date:mForm.date,paid:mForm.paid,amount:parseFloat(mForm.amount)
+    });
+    setMForm({customerId:"",date:todayStr(),paid:true,amount:""});
+  }
+  async function togglePaid(m){
+    await window.__updateDoc(window.__doc(window.__db,"mows",m.id),{paid:!m.paid});
+  }
+  async function deleteMow(id){
+    await window.__deleteDoc(window.__doc(window.__db,"mows",id));
+  }
+
+  // expenses
+  async function addExpense(){
+    if(!eForm.description.trim()||!eForm.amount||!eForm.date) return;
+    await window.__addDoc(window.__col("expenses"),{
+      description:eForm.description.trim(),amount:parseFloat(eForm.amount),date:eForm.date
+    });
+    setEForm({description:"",amount:"",date:todayStr()});
+  }
+  async function deleteExpense(id){
+    await window.__deleteDoc(window.__doc(window.__db,"expenses",id));
+  }
+
+  // stats
+  const now=todayStr();
+  const wk=getWeekKey(now),mo=getMonthKey(now),yr=getYearKey(now);
+  const paidMows=mows.filter(m=>m.paid);
+  const earn=arr=>arr.reduce((s,m)=>s+(m.amount||0),0);
+  const weekEarn=earn(paidMows.filter(m=>getWeekKey(m.date)===wk));
+  const monthEarn=earn(paidMows.filter(m=>getMonthKey(m.date)===mo));
+  const yearEarn=earn(paidMows.filter(m=>getYearKey(m.date)===yr));
+  const allEarn=earn(paidMows);
+  const weekExp=earn(expenses.filter(e=>getWeekKey(e.date)===wk));
+  const monthExp=earn(expenses.filter(e=>getMonthKey(e.date)===mo));
+  const yearExp=earn(expenses.filter(e=>getYearKey(e.date)===yr));
+  const allExp=earn(expenses);
+  const unpaidMows=mows.filter(m=>!m.paid);
+  const weekMows=mows.filter(m=>getWeekKey(m.date)===wk).length;
+  const monthMows=mows.filter(m=>getMonthKey(m.date)===mo).length;
+  const filteredHistory=hFilter==="All"?mows:mows.filter(m=>m.customerId===hFilter);
+
+  const selectedCust=customers.find(c=>c.id===mForm.customerId);
+  const hasCustomPrice=selectedCust?.price&&mForm.amount!==String(selectedCust.price);
+
+  // csv
+  function downloadCSV(filename,rows){
+    const csv=rows.map(r=>r.map(c=>`"${String(c??"").replace(/"/g,'""')}"`).join(",")).join("\n");
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+    a.download=filename; a.click();
+  }
+  function exportMows(){
+    const rows=[["Date","Customer","Amount","Paid"]];
+    [...mows].sort((a,b)=>b.date.localeCompare(a.date)).forEach(m=>rows.push([fmtDate(m.date),m.customerName,m.amount.toFixed(2),m.paid?"Yes":"No"]));
+    downloadCSV("mows.csv",rows);
+  }
+  function exportExpenses(){
+    const rows=[["Date","Description","Amount"]];
+    [...expenses].sort((a,b)=>b.date.localeCompare(a.date)).forEach(e=>rows.push([fmtDate(e.date),e.description,e.amount.toFixed(2)]));
+    downloadCSV("expenses.csv",rows);
+  }
+  function exportSummary(){
+    const rows=[["Period","Earned","Expenses","Net"]];
+    rows.push(["This Week",weekEarn.toFixed(2),weekExp.toFixed(2),(weekEarn-weekExp).toFixed(2)]);
+    rows.push(["This Month",monthEarn.toFixed(2),monthExp.toFixed(2),(monthEarn-monthExp).toFixed(2)]);
+    rows.push(["This Year",yearEarn.toFixed(2),yearExp.toFixed(2),(yearEarn-yearExp).toFixed(2)]);
+    rows.push(["All Time",allEarn.toFixed(2),allExp.toFixed(2),(allEarn-allExp).toFixed(2)]);
+    downloadCSV("summary.csv",rows);
+  }
+  function exportCustomers(){
+    const rows=[["Name","Phone","Standard Price","Total Mows","Total Earned","Last Mowed"]];
+    [...customers].sort((a,b)=>a.name.localeCompare(b.name)).forEach(c=>{
+      const cm=mows.filter(m=>m.customerId===c.id);
+      const last=[...cm].sort((a,b)=>b.date.localeCompare(a.date))[0];
+      const te=cm.filter(m=>m.paid).reduce((s,m)=>s+m.amount,0);
+      rows.push([c.name,c.phone||"",c.price?c.price.toFixed(2):"",cm.length,te.toFixed(2),last?fmtDate(last.date):"Never"]);
+    });
+    downloadCSV("customers.csv",rows);
+  }
+
+  if(!ready) return (
+    <div className="loading">
+      <div className="loading-mark"><IconLeaf/></div>
+      <div className="loading-text">Connecting…</div>
+    </div>
+  );
+
+  const nowD = new Date();
+  const dateLabel = nowD.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
+
+  return (
+    <div className="app-shell">
+      {/* Top bar */}
+      <div className="topbar">
+        <div>
+          <div className="topbar-brand">Green<span>Track</span></div>
+        </div>
+        <div className="topbar-date">{dateLabel}</div>
+      </div>
+
+      {/* Screen */}
+      <div className="screen-area">
+        <div className="screen-inner">
+
+        {/* ══ DASHBOARD ══ */}
+        {tab==="Dashboard" && (
+          <div>
+            {/* Hero — this month */}
+            <div className="hero-block">
+              <div className="hero-top">
+                <div className="hero-eyebrow">This Month — Net Profit</div>
+                <div className="hero-num">{fmtMoney(monthEarn-monthExp)}</div>
+                <div className="hero-sub">{monthMows} mow{monthMows!==1?"s":""} · {fmtMoney(monthEarn)} earned · {fmtMoney(monthExp)} spent</div>
+              </div>
+              <div className="hero-grid">
+                <div className="hero-cell">
+                  <div className="hc-label">Week</div>
+                  <div className="hc-val" style={{color:"var(--green)"}}>{fmtMoney(weekEarn-weekExp)}</div>
+                </div>
+                <div className="hero-cell" style={{borderLeft:"1px solid var(--border)",borderRight:"1px solid var(--border)"}}>
+                  <div className="hc-label">Year</div>
+                  <div className="hc-val" style={{color:"var(--green)"}}>{fmtMoney(yearEarn-yearExp)}</div>
+                </div>
+                <div className="hero-cell">
+                  <div className="hc-label">All Time</div>
+                  <div className="hc-val" style={{color:"var(--text)"}}>{fmtMoney(allEarn-allExp)}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Unpaid */}
+            {unpaidMows.length>0 && (
+              <div className="unpaid-banner" style={{margin:"12px 16px 0"}}>
+                <div className="ub-head">
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <div style={{width:16,height:16,color:"var(--amber)"}}><IconWarning/></div>
+                    <span className="ub-title">{unpaidMows.length} unpaid</span>
+                  </div>
+                  <span className="ub-total">{fmtMoney(earn(unpaidMows))}</span>
+                </div>
+                {unpaidMows.map(m=>(
+                  <div key={m.id} className="ub-row">
+                    <div>
+                      <div className="ub-name">{m.customerName}</div>
+                      <div className="ub-date">{fmtDate(m.date)}</div>
+                    </div>
+                    <div className="ub-right">
+                      <span className="ub-amt">{fmtMoney(m.amount)}</span>
+                      <button className="btn-sm btn-sm-amber" onClick={()=>togglePaid(m)}>Mark Paid</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {unpaidMows.length===0&&mows.length>0 && (
+              <div className="all-paid" style={{margin:"12px 16px 0"}}>
+                <div style={{width:16,height:16}}><IconCheck/></div>
+                All mows are paid up
+              </div>
+            )}
+
+            {/* Period breakdown */}
+            <div className="sh"><span className="sh-title">Breakdown</span></div>
+            <div className="periods">
+              <PeriodRow label="This Week"  earned={weekEarn}  expenses={weekExp}/>
+              <PeriodRow label="This Month" earned={monthEarn} expenses={monthExp}/>
+              <PeriodRow label="This Year"  earned={yearEarn}  expenses={yearExp}/>
+              <PeriodRow label="All Time"   earned={allEarn}   expenses={allExp}/>
+            </div>
+
+            {mows.length===0&&expenses.length===0 && (
+              <EmptyState icon={IconLeaf} title="Nothing tracked yet" body="Add clients in the Clients tab, then log your first mow."/>
+            )}
+          </div>
+        )}
+
+        {/* ══ LOG MOW ══ */}
+        {tab==="Log Mow" && (
+          <div className="form-wrap">
+            <div className="form-screen-title">Log a Mow</div>
+            <div className="form-screen-sub">Record a completed job.</div>
+            {customers.length===0 ? (
+              <EmptyState icon={IconUsers} title="No clients yet" body="Add clients in the Clients tab first."/>
+            ) : (
+              <>
+                <div className="field-group">
+                  <label className="field-label">Client</label>
+                  <select value={mForm.customerId} onChange={e=>{
+                    const c=customers.find(x=>x.id===e.target.value);
+                    setMForm(f=>({...f,customerId:e.target.value,amount:c?.price?String(c.price):""}));
+                  }}>
+                    <option value="">Select a client</option>
+                    {[...customers].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>(
+                      <option key={c.id} value={c.id}>{c.name}{c.price?` · ${fmtMoney(c.price)}`:""}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="field-row">
+                  <div className="field-group">
+                    <label className="field-label">Amount</label>
+                    <input type="number" value={mForm.amount} onChange={e=>setMForm(f=>({...f,amount:e.target.value}))} placeholder="0.00"/>
+                    {selectedCust?.price&&hasCustomPrice&&(
+                      <div className="price-hint">Standard: {fmtMoney(selectedCust.price)}</div>
+                    )}
+                  </div>
+                  <div className="field-group">
+                    <label className="field-label">Date</label>
+                    <input type="date" value={mForm.date} onChange={e=>setMForm(f=>({...f,date:e.target.value}))}/>
+                  </div>
+                </div>
+
+                <div className="field-group">
+                  <label className="check-row">
+                    <input type="checkbox" checked={mForm.paid} onChange={e=>setMForm(f=>({...f,paid:e.target.checked}))}/>
+                    <span className="check-text">Paid at time of service</span>
+                  </label>
+                </div>
+
+                <button className="btn-primary" onClick={logMow}>Log Mow</button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ══ EXPENSES ══ */}
+        {tab==="Expenses" && (
+          <div>
+            <div className="form-wrap" style={{paddingBottom:0}}>
+              <div className="form-screen-title">Expenses</div>
+              <div className="form-screen-sub">Track gas, equipment, and overhead.</div>
+
+              <div className="field-group">
+                <label className="field-label">Description</label>
+                <input value={eForm.description} onChange={e=>setEForm(f=>({...f,description:e.target.value}))} placeholder="e.g. Fuel, blade sharpening"/>
+              </div>
+              <div className="field-row">
+                <div className="field-group">
+                  <label className="field-label">Amount</label>
+                  <input type="number" value={eForm.amount} onChange={e=>setEForm(f=>({...f,amount:e.target.value}))} placeholder="0.00"/>
+                </div>
+                <div className="field-group">
+                  <label className="field-label">Date</label>
+                  <input type="date" value={eForm.date} onChange={e=>setEForm(f=>({...f,date:e.target.value}))}/>
+                </div>
+              </div>
+              <button className="btn-red" onClick={addExpense}>Add Expense</button>
+            </div>
+
+            {expenses.length===0 ? (
+              <EmptyState icon={IconDollar} title="No expenses" body="Add fuel, parts, and other costs to track your real profit."/>
+            ) : (
+              <>
+                <div className="sh" style={{paddingTop:24}}>
+                  <span className="sh-title">Logged Expenses</span>
+                  <span className="sh-value">{fmtMoney(earn(expenses))}</span>
+                </div>
+                <div className="item-list">
+                  {[...expenses].sort((a,b)=>b.date.localeCompare(a.date)).map(e=>(
+                    <div key={e.id} className="item-card">
+                      <div className="item-main">
+                        <div style={{flex:1}}>
+                          <div className="item-name">{e.description}</div>
+                          <div className="item-meta">{fmtDate(e.date)}</div>
+                        </div>
+                        <div className="item-right">
+                          <span className="item-amount" style={{color:"var(--red)"}}>{fmtMoney(e.amount)}</span>
+                        </div>
+                      </div>
+                      <div className="item-actions">
+                        <button className="btn-sm btn-sm-red" onClick={()=>deleteExpense(e.id)}>
+                          <span style={{display:"flex",gap:4,alignItems:"center"}}><span style={{width:13,height:13}}><IconTrash/></span> Delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ══ CUSTOMERS ══ */}
+        {tab==="Customers" && (
+          <div>
+            <div className="form-wrap" style={{paddingBottom:0}}>
+              <div className="form-screen-title">{cEdit?"Edit Client":"Add Client"}</div>
+              <div className="form-screen-sub">{cEdit?"Update client details.":"Add a new client to your roster."}</div>
+
+              <div className="field-group">
+                <label className="field-label">Full Name</label>
+                <input value={cForm.name} onChange={e=>setCForm(f=>({...f,name:e.target.value}))} placeholder="Name"/>
+              </div>
+              <div className="field-row">
+                <div className="field-group">
+                  <label className="field-label">Phone</label>
+                  <input value={cForm.phone} onChange={e=>setCForm(f=>({...f,phone:e.target.value}))} placeholder="Optional"/>
+                </div>
+                <div className="field-group">
+                  <label className="field-label">Standard Price</label>
+                  <input type="number" value={cForm.price} onChange={e=>setCForm(f=>({...f,price:e.target.value}))} placeholder="0.00"/>
+                </div>
+              </div>
+              <button className="btn-primary" onClick={saveCustomer}>{cEdit?"Save Changes":"Add Client"}</button>
+              {cEdit && <button className="btn-cancel" onClick={()=>{setCEdit(null);setCForm({name:"",phone:"",price:""})}}>Cancel</button>}
+            </div>
+
+            {customers.length===0 ? (
+              <EmptyState icon={IconUsers} title="No clients yet" body="Add your first client above to get started."/>
+            ) : (
+              <>
+                <div className="sh" style={{paddingTop:24}}>
+                  <span className="sh-title">Your Clients</span>
+                  <span className="sh-value">{customers.length} total</span>
+                </div>
+                <div className="item-list">
+                  {[...customers].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>{
+                    const cm=mows.filter(m=>m.customerId===c.id);
+                    const last=[...cm].sort((a,b)=>b.date.localeCompare(a.date))[0];
+                    const unpaid=cm.filter(m=>!m.paid).length;
+                    return (
+                      <div key={c.id} className="cust-card">
+                        <div className="cust-top">
+                          <div className="cust-avatar">{initials(c.name)}</div>
+                          <div className="cust-info">
+                            <div className="cust-name">{c.name}</div>
+                            <div className="cust-meta">
+                              {c.phone&&<span>{c.phone} · </span>}
+                              {c.price?fmtMoney(c.price)+"/mow":"No rate set"}
+                              {last?<span> · Last: {fmtDate(last.date)}</span>:<span> · Not mowed yet</span>}
+                            </div>
+                          </div>
+                          {unpaid>0 && <span className="pill pill-amber">{unpaid}</span>}
+                        </div>
+                        <div className="cust-actions">
+                          <button className="btn-sm btn-sm-ghost" onClick={()=>startEditC(c)}>
+                            <span style={{display:"flex",gap:4,alignItems:"center"}}><span style={{width:13,height:13}}><IconEdit/></span> Edit</span>
+                          </button>
+                          <button className="btn-sm btn-sm-red" onClick={()=>deleteCustomer(c.id)}>
+                            <span style={{display:"flex",gap:4,alignItems:"center"}}><span style={{width:13,height:13}}><IconTrash/></span> Delete</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ══ HISTORY ══ */}
+        {tab==="History" && (
+          <div>
+            <div className="filter-row">
+              <div style={{width:16,height:16,color:"var(--text3)",flexShrink:0}}><IconFilter/></div>
+              <select value={hFilter} onChange={e=>setHFilter(e.target.value)} style={{flex:1}}>
+                <option value="All">All clients</option>
+                {[...customers].sort((a,b)=>a.name.localeCompare(b.name)).map(c=>(
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {filteredHistory.length===0 ? (
+              <EmptyState icon={IconClock} title="No mows logged" body="Head to the Mow tab to record your first job."/>
+            ) : (
+              <>
+                <div className="sh">
+                  <span className="sh-title">Mow History</span>
+                  <span className="sh-value">{filteredHistory.length} records</span>
+                </div>
+                <div className="item-list">
+                  {[...filteredHistory].sort((a,b)=>b.date.localeCompare(a.date)).map(m=>(
+                    <div key={m.id} className="hist-card">
+                      <div className="hist-main">
+                        <div className="hist-left">
+                          <div className="hist-name">{m.customerName}</div>
+                          <div className="hist-date">{fmtDate(m.date)}</div>
+                        </div>
+                        <div className="hist-right">
+                          <span className="hist-amt">{fmtMoney(m.amount)}</span>
+                          <span className={`pill ${m.paid?"pill-green":"pill-amber"}`}>{m.paid?"Paid":"Unpaid"}</span>
+                        </div>
+                      </div>
+                      <div className="hist-actions">
+                        {!m.paid && <button className="btn-sm btn-sm-green" onClick={()=>togglePaid(m)}>Mark Paid</button>}
+                        {m.paid  && <button className="btn-sm btn-sm-ghost" onClick={()=>togglePaid(m)}>Undo</button>}
+                        <button className="btn-sm btn-sm-red" onClick={()=>deleteMow(m.id)}>
+                          <span style={{display:"flex",gap:4,alignItems:"center"}}><span style={{width:13,height:13}}><IconTrash/></span> Delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ══ EXPORT ══ */}
+        {tab==="Export" && (
+          <div>
+            <div className="form-wrap" style={{paddingBottom:8}}>
+              <div className="form-screen-title">Export Data</div>
+              <div className="form-screen-sub">Download CSV files for accounting or backup.</div>
+            </div>
+            <div className="item-list">
+              {[
+                {icon:IconBarChart, title:"Earnings Summary",   sub:`Week, month, year & all-time`,          fn:exportSummary,   off:mows.length===0},
+                {icon:IconScissors, title:"All Mows",           sub:`${mows.length} records`,                fn:exportMows,      off:mows.length===0},
+                {icon:IconDollar,   title:"All Expenses",       sub:`${expenses.length} records`,            fn:exportExpenses,  off:expenses.length===0},
+                {icon:IconUsers,    title:"Client List",        sub:`${customers.length} clients with stats`,fn:exportCustomers, off:customers.length===0},
+              ].map(({icon:Icon,title,sub,fn,off})=>(
+                <div key={title} className="export-card" style={{opacity:off?0.4:1}}>
+                  <div className="export-icon"><Icon/></div>
+                  <div className="export-info">
+                    <div className="export-title">{title}</div>
+                    <div className="export-sub">{sub}</div>
+                  </div>
+                  <button className="btn-dl" onClick={fn} disabled={off}>CSV</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        </div>
+      </div>
+
+      {/* Bottom nav */}
+      <div className="bottom-nav">
+        {TABS.map(({id,Icon,label})=>(
+          <button key={id} className={`nav-item${tab===id?" active":""}`} onClick={()=>setTab(id)}>
+            <Icon/>
+            <span className="nav-label">{label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 </script>
 </body>
 </html>
